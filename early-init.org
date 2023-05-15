@@ -1,0 +1,9 @@
+#+title: Early Init --- Pre-Startup Configs
+#+property: header-args :tangle early-init.el
+
+- Disable package.el in favor of straight.el
+
+  #+begin_src elisp
+  (setq package-enable-at-startup nil)
+  #+end_src
+

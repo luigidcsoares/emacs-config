@@ -1,0 +1,7 @@
+#+title: Emacs Configuration
+
+The configuration is split into two files:
+- [[early_init.org][Early Init]]: disable package.el and (TODO) reduce startup time
+- [[init.org][Init]]: Main configuration, probably the file you should look
+
+To generate the config files, just tangle each org file.

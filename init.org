@@ -1,0 +1,535 @@
+#+title: Init --- General Configs
+#+property: header-args :tangle init.el
+
+* Core packages
+
+- Bootstrap [[https://github.com/radian-software/straight.el][straight.el]]. Make sure to add =(setq package-enable-at-startup nil)= to early-init.el
+  
+  #+begin_src elisp
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 6))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+  #+end_src
+
+- Install [[https://github.com/jwiegley/use-package][use-package]] and ensure that packages are installed
+
+  #+begin_src elisp
+  (straight-use-package 'use-package)
+  (setq straight-use-package-by-default t)
+  #+end_src
+
+* User Interface
+
+- Maximize screen at startup and set up transparency
+
+  #+begin_src elisp
+  ;; (set-frame-parameter nil 'alpha-background 85)
+  ;; (add-to-list 'default-frame-alist '(alpha-background . 85))
+  ;; (add-to-list 'default-frame-alist '(fullscreen . maximized))
+  #+end_src
+
+- Configure the splash screen with [[https://github.com/emacs-dashboard/emacs-dashboard][Emacs Dashboard]]
+
+  #+begin_src elisp
+  ;; TODO: Configure dashboard package
+  ;; Temporarily disable splash screen
+  (setq inhibit-startup-message t)
+  #+end_src
+
+- Clean up some stuff
+
+  #+begin_src elisp
+  (tooltip-mode -1)
+  (tool-bar-mode -1)
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1)
+  #+end_src
+
+- Display line numbers 
+
+  #+begin_src elisp
+  (use-package display-line-numbers
+    :straight (:type built-in)
+    :hook ((prog-mode text-mode conf-mode) . display-line-numbers-mode))
+  #+end_src
+
+- Configure fonts
+- Enable [[https://github.com/mickeynp/ligature.el][ligatures]]
+
+  #+begin_src elisp
+  (set-face-attribute 'default nil
+                      :font "Iosevka Nerd Font Mono"
+                      :height 130)
+
+  (set-face-attribute 'variable-pitch nil
+                      :font "Iosevka Etoile"
+                      :height 130)
+
+  (use-package mixed-pitch
+    :hook (text-mode . mixed-pitch-mode))
+
+  (use-package ligature
+    :config
+    ;; Enable all Cascadia and Fira Code ligatures in programming modes
+    (ligature-set-ligatures '(prog-mode org-mode)
+                            '(("=" (rx (+ (or ">" "<" "|" "/" "~" ":" "!" "="))))
+                              (";" (rx (+ ";")))
+                              ("&" (rx (+ "&")))
+                              ("!" (rx (+ (or "=" "!" "\." ":" "~"))))
+                              ("?" (rx (or ":" "=" "\." (+ "?"))))
+                              ("%" (rx (+ "%")))
+                              ("|" (rx (+ (or ">" "<" "|" "/" ":" "!" "}" "\]" "-" "=" ))))
+                              ("\\" (rx (or "/" (+ "\\"))))
+                              ("+" (rx (or ">" (+ "+"))))
+                              (":" (rx (or ">" "<" "=" "//" ":=" (+ ":"))))
+                              ("/" (rx (+ (or ">"  "<" "|" "/" "\\" "\*" ":" "!" "="))))
+                              ("\." (rx (or "=" "-" "\?" "\.=" "\.<" (+ "\."))))
+                              ("-" (rx (+ (or ">" "<" "|" "~" "-"))))
+                              ("*" (rx (or ">" "/" ")" (+ "*"))))
+                              ("w" (rx (+ "w")))
+                              ("<" (rx (+ (or "\+" "\*" "\$" "<" ">" ":" "~"  "!" "-"  "/" "|" "="))))
+                              (">" (rx (+ (or ">" "<" "|" "/" ":" "=" "-"))))
+                              ("#" (rx (or ":" "=" "!" "(" "\?" "\[" "{" "_(" "_" (+ "#"))))
+                              ("~" (rx (or ">" "=" "-" "@" "~>" (+ "~"))))
+                              ("_" (rx (+ (or "_" "|"))))
+                              ;; Fira code: 0xFF 0x12
+                              ("0" (rx (and "x" (+ (in "A-F" "a-f" "0-9")))))
+                              ;; Fira code:
+                              "Fl"  "Tl"  "fi"  "fj"  "fl"  "ft"
+                              ;; The few not covered by the regexps.
+                              "{|"  "[|"  "]#"  "(*"  "}#"  "$>"  "^="))
+    (global-ligature-mode))
+  #+end_src
+
+- Install [[https://github.com/doomemacs/themes][doom-themes]] and load default theme
+- Define [[https://emacs.stackexchange.com/questions/24088/make-a-function-to-toggle-themes][toggle between dark and light themes]]
+
+  #+begin_src elisp
+  (use-package doom-themes :config (load-theme 'doom-nord t))
+
+  (defvar my/dark-theme 'doom-nord)
+  (defvar my/light-theme 'doom-nord-light)
+  (defvar my/current-theme my/dark-theme)
+
+  ;; Disable other themes before loading new one
+  (defadvice load-theme (before theme-dont-propagate activate)
+    "Disable theme before loading new one."
+    (mapc #'disable-theme custom-enabled-themes))
+
+  (defun my/load-theme (theme)
+    (if (eq theme 'default)
+        (disable-theme my/current-theme)
+      (progn (load-theme theme t)))
+    (setq my/current-theme theme))
+
+  (defun my/toggle-theme ()
+    (interactive)
+    (if (eq my/current-theme my/dark-theme)
+        (my/load-theme my/light-theme)
+      (my/load-theme my/dark-theme)))
+  #+end_src
+
+- Install [[https://github.com/domtronn/all-the-icons.el][all-the-icons]]
+
+  #+begin_src elisp
+  (use-package all-the-icons :if (display-graphic-p))
+  #+end_src
+  
+- Install [[https://github.com/seagle0128/doom-modeline][doom-modeline]]
+  
+  #+begin_src elisp
+  (use-package mood-line
+    :config (mood-line-mode)
+    :custom (mood-line-glyph-alist mood-line-glyphs-fira-code))
+  #+end_src
+
+* Editor
+
+** Modal Editing ([[https://github.com/meow-edit/meow][Meow)]]
+
+- Define the [[https://github.com/meow-edit/meow/blob/master/KEYBINDING_QWERTY.org][qwerty layout]]
+
+  #+begin_src elisp
+  (defun my/meow-qwerty ()
+    (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+    (meow-motion-overwrite-define-key
+     '("j" . meow-next)
+     '("k" . meow-prev)
+     '("<escape>" . ignore))
+    (meow-leader-define-key
+     ;; SPC j/k will run the original command in MOTION state.
+     '("j" . "H-j")
+     '("k" . "H-k")
+     ;; Use SPC (0-9) for digit arguments.
+     '("1" . meow-digit-argument)
+     '("2" . meow-digit-argument)
+     '("3" . meow-digit-argument)
+     '("4" . meow-digit-argument)
+     '("5" . meow-digit-argument)
+     '("6" . meow-digit-argument)
+     '("7" . meow-digit-argument)
+     '("8" . meow-digit-argument)
+     '("9" . meow-digit-argument)
+     '("0" . meow-digit-argument)
+     '("/" . meow-keypad-describe-key)
+     '("?" . meow-cheatsheet))
+    (meow-normal-define-key
+     '("0" . meow-expand-0)
+     '("9" . meow-expand-9)
+     '("8" . meow-expand-8)
+     '("7" . meow-expand-7)
+     '("6" . meow-expand-6)
+     '("5" . meow-expand-5)
+     '("4" . meow-expand-4)
+     '("3" . meow-expand-3)
+     '("2" . meow-expand-2)
+     '("1" . meow-expand-1)
+     '("-" . negative-argument)
+     '(";" . meow-reverse)
+     '("," . meow-inner-of-thing)
+     '("." . meow-bounds-of-thing)
+     '("[" . meow-beginning-of-thing)
+     '("]" . meow-end-of-thing)
+     '("a" . meow-append)
+     '("A" . meow-open-below)
+     '("b" . meow-back-word)
+     '("B" . meow-back-symbol)
+     '("c" . meow-change)
+     '("d" . meow-delete)
+     '("D" . meow-backward-delete)
+     '("e" . meow-next-word)
+     '("E" . meow-next-symbol)
+     '("f" . meow-find)
+     '("g" . meow-cancel-selection)
+     '("G" . meow-grab)
+     '("h" . meow-left)
+     '("H" . meow-left-expand)
+     '("i" . meow-insert)
+     '("I" . meow-open-above)
+     '("j" . meow-next)
+     '("J" . meow-next-expand)
+     '("k" . meow-prev)
+     '("K" . meow-prev-expand)
+     '("l" . meow-right)
+     '("L" . meow-right-expand)
+     '("m" . meow-join)
+     '("n" . meow-search)
+     '("o" . meow-block)
+     '("O" . meow-to-block)
+     '("p" . meow-yank)
+     '("q" . meow-quit)
+     '("Q" . meow-goto-line)
+     '("r" . meow-replace)
+     '("R" . meow-swap-grab)
+     '("s" . meow-kill)
+     '("t" . meow-till)
+     '("u" . meow-undo)
+     '("U" . meow-undo-in-selection)
+     '("v" . meow-visit)
+     '("w" . meow-mark-word)
+     '("W" . meow-mark-symbol)
+     '("x" . meow-line)
+     '("X" . meow-goto-line)
+     '("y" . meow-save)
+     '("Y" . meow-sync-grab)
+     '("z" . meow-pop-selection)
+     '("'" . repeat)
+     '("<escape>" . ignore)))
+  #+end_src
+
+- Enable and set up meow
+- Remap bindings so that those used more frequently require less keys
+
+  #+begin_src elisp
+  (use-package meow
+    :demand t
+    :bind (("C-x C-b" . switch-to-buffer) ; Meow: SPC x b
+           ("C-x b" . list-buffers)) ; Meow: SPC x SPC b
+    :config
+    (my/meow-qwerty)
+    (meow-leader-define-key '("u" . meow-universal-argument))
+    (meow-global-mode))
+  #+end_src
+
+** Revert Buffers
+
+- Auto revert buffers when changes are saved
+- TODO: lazily revert (see how [[https://github.com/doomemacs/doomemacs/blob/63586423dab6248d6e5acfc68dc4324c15f05d83/lisp/doom-editor.el#L258][doom]] handles this)
+
+  #+begin_src elisp
+  (use-package autorevert
+    :config (global-auto-revert-mode))
+  #+end_src
+  
+* Languages
+
+** Latex
+
+- Install and configure AUCTeX
+
+  #+begin_src elisp
+  (use-package tex
+    :straight auctex
+    :hook (LaTeX-mode-hook . visual-line-mode)
+    :custom
+    (TeX-parse-self t)
+    (TeX-auto-save t)
+    (TeX-electric-sub-and-superscript t)
+    ;; Use hidden directories for AUCTeX files.
+    (TeX-auto-local ".auctex-auto")
+    (TeX-style-local ".auctex-style")
+    ;; Just save, don't ask before each compilation.
+    (TeX-save-query nil)
+    (TeX-source-correlate-mode t)
+    (TeX-source-correlate-method 'synctex)
+    ;; Don't start the Emacs server when correlating sources.
+    (TeX-source-correlate-start-server nil)
+    :config
+    (add-to-list 'TeX-view-program-selection
+                 '(output-pdf "PDF Tools"))
+    (add-hook 'TeX-after-compilation-finished-functions
+              #'TeX-revert-document-buffer))
+  #+end_src
+
+- Install [[https://github.com/tom-tan/auctex-latexmk][auctex-latexmk]] to add LatexMk support to AUCTeX
+
+  #+begin_src elisp
+  (use-package auctex-latexmk
+    :custom (auctex-latexmk-inherit-TeX-PDF-mode t)
+    :config (auctex-latexmk-setup))
+  #+end_src
+
+** Org + Jupyter
+
+- [[https://github.com/nnicandro/emacs-jupyter][Emacs jupyter]] can be used both in REPL and org-mode
+- Requirements:
+  - [[https://jblevins.org/projects/markdown-mode/][markdown-mode]] (optional, does it make sense?)
+  - [[https://company-mode.github.io/][company-mode]] (optional, check Completion section)
+  - [[https://github.com/ahyatt/emacs-websocket][emacs-websocket]]
+  - [[https://github.com/skeeto/emacs-web-server][simple-httpd]]
+  - [[https://github.com/nnicandro/emacs-zmq][emacs-zmq]]
+
+  #+begin_src elisp
+  (use-package websocket :defer t)
+  (use-package simple-httpd :defer t)
+  (use-package zmq :defer t)
+  (use-package jupyter
+    :after (websocket simple-httpd zmq)
+    :defer t)
+  #+end_src
+
+- Configure Org
+
+  #+begin_src elisp
+  (use-package org
+    :straight (:type built-in)
+    :hook (org-mode . visual-line-mode)
+    :custom
+    (org-latex-compiler "lualatex")
+    (org-hide-emphasis-markers t)
+    (org-startup-indented t)
+    (org-pretty-entities t)
+    (org-src-preserve-indentation nil)
+    (org-edit-src-content-indentation 0)
+    (org-latex-src-block-backend 'listings))
+  #+end_src
+
+- Org babel (src blocks)
+
+  #+begin_src elisp
+  (defun my/org-babel-do-load-languages ()
+    (org-babel-do-load-languages 'org-babel-load-languages
+                                 org-babel-load-languages))
+
+  (use-package ob
+    :straight (:type built-in)
+    :hook (after-init . my/org-babel-do-load-languages)
+    :custom
+    ;; Don't need permission, just be careful!
+    (org-confirm-babel-evaluate nil)
+    (org-babel-load-languages '((emacs-lisp . t)
+                                (shell . t)
+                                (C . t)
+                                (python . t)
+                                (jupyter .  t))))
+  #+end_src
+
+- Org extras
+
+  #+begin_src elisp
+  (use-package org-bullets :hook (org-mode . org-bullets-mode))
+  #+end_src
+
+** C/C++
+
+#+begin_src elisp
+(use-package cc-mode
+  :mode ("\\.tpp\\'" . c++-mode)
+  :config (c-set-offset 'innamespace 0))
+#+end_src
+
+** Clojure
+
+  #+begin_src elisp
+  (use-package clojure-mode :defer t)
+  #+end_src
+
+** Nix
+
+  #+begin_src elisp
+  (use-package nix-mode :mode "\\.nix\\'")
+  #+end_src
+
+** Python
+
+- Python specific configurations
+  
+  #+begin_src elisp
+  (use-package python
+    :straight (:type built-in)
+    :defer t
+    :custom (python-indent-guess-indent-offset-verbose nil))
+  #+end_src
+
+* Search and Completion
+
+- Install [[https://github.com/minad/vertico][vertico]] for vertical completion UI
+
+  #+begin_src elisp
+  (use-package vertico :init (vertico-mode))
+  #+end_src
+
+- Install [[https://github.com/oantolin/orderless][orderless]] to search for components (e.g. "describe key" and "key describe")
+
+  #+begin_src elisp
+  (use-package orderless
+    :custom
+    (completion-styles '(orderless basic))
+    (completion-category-overrides '((file (styles basic partial-completion)))))
+  #+end_src
+
+- Install [[https://github.com/minad/marginalia][marginalia]] for rich annotations (what does a command do?)
+
+  #+begin_src elisp
+  (use-package marginalia
+    :bind (("M-A" . marginalia-cycle)
+           :map minibuffer-local-map
+           ("M-A" . marginalia-cycle))
+    :init (marginalia-mode))
+  #+end_src
+
+- Install [[https://github.com/minad/consult][consult]] for search and navigation
+
+  #+begin_src elisp
+  (use-package consult
+    :bind (([remap switch-to-buffer] . consult-buffer)
+           ;; M-s bindings (search map)
+           ("M-s f" . consult-find)
+           ("M-s l" . consult-line)
+           ("M-s L" . consult-line-multi)
+           ("M-s r" . consult-ripgrep)))
+  #+end_src
+
+- Install [[https://github.com/oantolin/embark][embark and embark-consult]] to act based on what's near point
+
+  #+begin_src elisp
+  (use-package embark
+    :bind
+    (("C-." . embark-act)
+     ("M-." . embark-dwim)
+     ("C-h B" . embark-bindings)) ; alternative for `describe-bindings'
+    :custom
+    (embark-indicators '(embark-minimal-indicator
+                         embark-highlight-indicator
+                         embark-isearch-highlight-indicator))
+    (embark-prompter #'embark-completing-read-prompter)
+    :init (setq prefix-help-command #'embark-prefix-help-command)
+    :config
+    ;; Hide the mode line of the Embark live/completions buffers
+    (add-to-list 'display-buffer-alist
+                 '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                   nil
+                   (window-parameters (mode-line-format . none)))))
+  
+  (use-package embark-consult :hook (embark-collect-mode . consult-preview-at-point-mode))
+  #+end_src
+
+* Tools
+
+** Clipboard
+
+- Enhacing tty with [[https://github.com/spudlyo/clipetty][clipetty]]
+
+  #+begin_src elisp
+  (use-package clipetty
+    :hook (after-init . global-clipetty-mode))
+  #+end_src
+  
+- WSL: Looks like copying text from emacs to outside is buggy. Let's try this [[https://github.com/microsoft/wslg/issues/15#issuecomment-1193370697][workaround]]:
+
+  #+begin_src elisp
+  (when (and (getenv "WAYLAND_DISPLAY") (not (equal (getenv "GDK_BACKEND") "x11")))
+    (setq
+     interprogram-cut-function
+     (lambda (text)
+       ;; strangest thing: gui-select-text leads to gui-set-selection 'CLIPBOARD
+       ;; text -- if I eval that with some string, it mostly lands on the wayland
+       ;; clipboard, but not when it's invoked from this context.
+       ;; (gui-set-selection 'CLIPBOARD text)
+       ;; without the charset=utf-8 in type, emacs / wl-copy will crash when you paste emojis into a windows app
+       (start-process "wl-copy" nil "wl-copy" "--trim-newline" "--type" "text/plain;charset=utf-8"  text))))
+  #+end_src
+
+** PDF Tools
+
+- Install and config PDF tools (copied from [[https://github.com/doomemacs/doomemacs/blob/f5f9c7222ab266f36ee1273b386a35a880f8f299/modules/tools/pdf/config.el#L21][doom]])
+
+  #+begin_src elisp
+  (use-package pdf-tools
+    :mode ("\\.pdf\\'" . pdf-view-mode)
+    :config
+    ;; Despite its namesake, this does not call `pdf-tools-install', it only sets
+    ;; up hooks, auto-mode-alist/magic-mode-alist entries, global modes, and
+    ;; refreshes pdf-view-mode buffers, if any.
+    ;;
+    ;; I avoid calling `pdf-tools-install' directly because `pdf-tools' is easy to
+    ;; prematurely load in the background (e.g. when exporting an org file or by
+    ;; packages like org-pdftools). And I don't want pdf-tools to suddenly block
+    ;; Emacs and spew out compiler output for a few minutes in those cases. It's
+    ;; abysmal UX. The `pdf-view-mode' advice above works around this with a less
+    ;; cryptic failure message, at least.
+    (pdf-tools-install-noverify))
+  #+end_src
+
+** Direnv
+
+- Install [[envrc]] to set up per-directory environment
+- Tip: use it with nix flake, create .envrc w/ "use flake"
+
+  #+begin_src elisp
+  (use-package envrc
+    :if (executable-find "direnv")
+    :hook ((after-init . envrc-global-mode)))
+  #+end_src
+
+* Version Control
+
+- We don't need backup nor lockfiles, just go with git
+- On the other hand, auto-save files are good fallbacks in case of crashes
+
+  #+begin_src elisp
+  (use-package files
+    :straight (:type built-in)
+    :custom ((create-lockfiles nil)
+             (make-backup-files nil)
+             (auto-save-default t)))
+  #+end_src
