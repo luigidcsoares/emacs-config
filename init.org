@@ -29,12 +29,20 @@
 
 * User Interface
 
-- Maximize screen at startup and set up transparency
+- Maximize screen at startup and set up transparency (see https://kristofferbalintona.me/posts/202206071000/)
 
   #+begin_src elisp
-  ;; (set-frame-parameter nil 'alpha-background 85)
-  ;; (add-to-list 'default-frame-alist '(alpha-background . 85))
-  ;; (add-to-list 'default-frame-alist '(fullscreen . maximized))
+  (set-frame-parameter nil 'alpha-background 85) ; For current frame
+  (add-to-list 'default-frame-alist '(alpha-background . 85)) ; For all new frames henceforth
+  (add-to-list 'default-frame-alist '(fullscreen . maximized))
+
+  (defun my/toggle-transparency ()
+    "Toggle transparency."
+    (interactive)
+    (let ((alpha-transparency 85))
+      (if (eq (frame-parameter nil 'alpha-background) alpha-transparency)
+          (set-frame-parameter nil 'alpha-background 100)
+        (set-frame-parameter nil 'alpha-background alpha-transparency))))
   #+end_src
 
 - Configure the splash screen with [[https://github.com/emacs-dashboard/emacs-dashboard][Emacs Dashboard]]
@@ -147,9 +155,8 @@
 - Install [[https://github.com/seagle0128/doom-modeline][doom-modeline]]
   
   #+begin_src elisp
-  (use-package mood-line
-    :config (mood-line-mode)
-    :custom (mood-line-glyph-alist mood-line-glyphs-fira-code))
+  (use-package doom-modeline
+    :hook (after-init . doom-modeline-mode))
   #+end_src
 
 * Editor
@@ -467,13 +474,6 @@
 
 ** Clipboard
 
-- Enhacing tty with [[https://github.com/spudlyo/clipetty][clipetty]]
-
-  #+begin_src elisp
-  (use-package clipetty
-    :hook (after-init . global-clipetty-mode))
-  #+end_src
-  
 - WSL: Looks like copying text from emacs to outside is buggy. Let's try this [[https://github.com/microsoft/wslg/issues/15#issuecomment-1193370697][workaround]]:
 
   #+begin_src elisp
