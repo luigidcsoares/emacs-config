@@ -480,16 +480,17 @@
 - WSL: Looks like copying text from emacs to outside is buggy. Let's try this [[https://github.com/microsoft/wslg/issues/15#issuecomment-1193370697][workaround]]:
 
 #+begin_src elisp
-(when (and (getenv "WAYLAND_DISPLAY") (not (equal (getenv "GDK_BACKEND") "x11")))
-  (setq
-   interprogram-cut-function
-   (lambda (text)
-     ;; strangest thing: gui-select-text leads to gui-set-selection 'CLIPBOARD
-     ;; text -- if I eval that with some string, it mostly lands on the wayland
-     ;; clipboard, but not when it's invoked from this context.
-     ;; (gui-set-selection 'CLIPBOARD text)
-     ;; without the charset=utf-8 in type, emacs / wl-copy will crash when you paste emojis into a windows app
-     (start-process "wl-copy" nil "wl-copy" "--trim-newline" "--type" "text/plain;charset=utf-8"  text))))
+;; (when (and (getenv "WAYLAND_DISPLAY") (not (equal (getenv "GDK_BACKEND") "x11")))
+(setq
+ interprogram-cut-function
+ (lambda (text)
+   ;; strangest thing: gui-select-text leads to gui-set-selection 'CLIPBOARD
+   ;; text -- if I eval that with some string, it mostly lands on the wayland
+   ;; clipboard, but not when it's invoked from this context.
+   ;; (gui-set-selection 'CLIPBOARD text)
+   ;; without the charset=utf-8 in type, emacs / wl-copy will crash when you paste emojis into a windows app
+   (start-process "wl-copy" nil "wl-copy" "--trim-newline" "--type" "text/plain;charset=utf-8"  text)))
+;; )
 #+end_src
 
 ** PDF Tools
