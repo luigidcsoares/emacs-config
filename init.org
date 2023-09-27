@@ -123,11 +123,12 @@
 - Define [[https://emacs.stackexchange.com/questions/24088/make-a-function-to-toggle-themes][toggle between dark and light themes]]
 
 #+begin_src elisp
-(use-package doom-themes :config (load-theme 'doom-nord t))
-
-(defvar my/dark-theme 'doom-nord)
+(defvar my/dark-theme 'doom-palenight)
 (defvar my/light-theme 'doom-nord-light)
 (defvar my/current-theme my/dark-theme)
+
+(use-package doom-themes
+  :config (load-theme my/current-theme t))
 
 ;; Disable other themes before loading new one
 (defadvice load-theme (before theme-dont-propagate activate)
@@ -158,6 +159,19 @@
 #+begin_src elisp
 (use-package doom-modeline
   :hook (after-init . doom-modeline-mode))
+#+end_src
+
+- Enable ANSI escape codes to colorize outputs ([[https://endlessparentheses.com/ansi-colors-in-the-compilation-buffer-output.html][see]])
+
+#+begin_src elisp
+(defun my/colorize-compilation ()
+  "Colorize from `compilation-filter-start' to `point'."
+  (let ((inhibit-read-only t))
+    (ansi-color-apply-on-region
+     compilation-filter-start (point))))
+
+(use-package ansi-color
+  :hook (compilation-filter . my/colorize-compilation))
 #+end_src
 
 * Editor
@@ -258,14 +272,12 @@
 - Remap bindings so that those used more frequently require less keys
 
 #+begin_src elisp
-  (use-package meow
-    :demand t
-    :bind (("C-x C-b" . switch-to-buffer) ; Meow: SPC x b
-           ("C-x b" . list-buffers)) ; Meow: SPC x SPC b
-    :config
-    (my/meow-qwerty)
-    (meow-leader-define-key '("u" . meow-universal-argument))
-    (meow-global-mode))
+(use-package meow
+  :demand t
+  :config
+  (my/meow-qwerty)
+  (meow-leader-define-key '("u" . meow-universal-argument))
+  (meow-global-mode))
 #+end_src
 
 ** Revert Buffers
@@ -314,6 +326,46 @@
 (use-package auctex-latexmk
   :custom (auctex-latexmk-inherit-TeX-PDF-mode t)
   :config (auctex-latexmk-setup))
+#+end_src
+
+** C/C++
+
+#+begin_src elisp
+(use-package cc-mode
+  :mode ("\\.tpp\\'" . c++-mode)
+  :config (c-set-offset 'innamespace 0))
+#+end_src
+
+** Clojure
+
+#+begin_src elisp
+(use-package clojure-mode :defer t)
+#+end_src
+
+** Elixir
+
+#+begin_src elisp
+(use-package elixir-mode :defer t)
+(use-package ob-elixir :defer t)
+#+end_src
+
+** Nix
+
+#+begin_src elisp
+(use-package nix-mode :mode "\\.nix\\'")
+#+end_src
+
+** Python
+
+- Python specific configurations
+  
+#+begin_src elisp
+(use-package python
+  :straight (:type built-in)
+  :defer t
+  :custom (python-indent-guess-indent-offset-verbose nil))
+
+(use-package pyvenv)
 #+end_src
 
 ** Org + Jupyter
@@ -366,11 +418,13 @@
   :custom
   ;; Don't need permission, just be careful!
   (org-confirm-babel-evaluate nil)
-  (org-babel-load-languages '((emacs-lisp . t)
-                              (shell . t)
-                              (C . t)
+  (org-babel-load-languages '((C . t)
+                              (elixir . t)
+			      (emacs-lisp . t)
+			      (jupyter .  t)
+			      (makefile . t)
                               (python . t)
-                              (jupyter .  t))))
+			      (shell . t))))
 #+end_src
 
 - Org extras
@@ -379,35 +433,51 @@
 (use-package org-bullets :hook (org-mode . org-bullets-mode))
 #+end_src
 
-** C/C++
+- Setup org for presentations
 
 #+begin_src elisp
-(use-package cc-mode
-  :mode ("\\.tpp\\'" . c++-mode)
-  :config (c-set-offset 'innamespace 0))
-#+end_src
+(use-package hide-mode-line)
+(use-package visual-fill-column
+  :custom
+  (visual-fill-column-width 120)
+  (visual-fill-column-center-text t))
 
-** Clojure
+(defvar my/face-remap-cookies '())
+(defun my/set-face-attribute (face &rest attrs)
+  (push (apply 'face-remap-add-relative face attrs) my/face-remap-cookies))
 
-#+begin_src elisp
-(use-package clojure-mode :defer t)
-#+end_src
+(defun my/org-present-start ()
+  (global-hide-mode-line-mode 1)
+  (visual-fill-column-mode 1)
+  (display-line-numbers-mode 0)
+  (org-display-inline-images)
+  (org-present-read-only)
 
-** Nix
-
-#+begin_src elisp
-(use-package nix-mode :mode "\\.nix\\'")
-#+end_src
-
-** Python
-
-- Python specific configurations
+  (my/set-face-attribute 'default '(:height 1.2) 'variable-pitch)
+  (my/set-face-attribute 'header-line '(:height 1.5) 'default)
+  (my/set-face-attribute 'org-document-title '(:height 1.7) 'org-document-title)
+  (my/set-face-attribute 'org-level-1 :height 1.5)
+  (my/set-face-attribute 'org-level-2 :height 1.4)
+  (my/set-face-attribute 'org-level-3 :height 1.3)
   
-#+begin_src elisp
-(use-package python
-  :straight (:type built-in)
-  :defer t
-  :custom (python-indent-guess-indent-offset-verbose nil))
+  (setq-local header-line-format " "))
+
+(defun my/org-present-quit ()
+  (global-hide-mode-line-mode 0)
+  (visual-fill-column-mode 0)
+  (display-line-numbers-mode 1)
+  (org-remove-inline-images)
+  (org-present-read-write)
+
+  (dolist (cookie my/face-remap-cookies)
+    (face-remap-remove-relative cookie))
+  
+  (setq my/face-remap-cookies '())
+  (setq-local header-line-format nil))
+
+(use-package org-present
+  :hook ((org-present-mode . my/org-present-start)
+	 (org-present-mode-quit . my/org-present-quit)))
 #+end_src
 
 * Search and Completion
@@ -430,11 +500,7 @@
 - Install [[https://github.com/minad/marginalia][marginalia]] for rich annotations (what does a command do?)
 
 #+begin_src elisp
-(use-package marginalia
-  :bind (("M-A" . marginalia-cycle)
-         :map minibuffer-local-map
-         ("M-A" . marginalia-cycle))
-  :init (marginalia-mode))
+(use-package marginalia :init (marginalia-mode))
 #+end_src
 
 - Install [[https://github.com/minad/consult][consult]] for search and navigation
@@ -443,10 +509,10 @@
 (use-package consult
   :bind (([remap switch-to-buffer] . consult-buffer)
          ;; M-s bindings (search map)
-         ("M-s f" . consult-find)
-         ("M-s l" . consult-line)
-         ("M-s L" . consult-line-multi)
-         ("M-s r" . consult-ripgrep)))
+         ("C-c c f" . consult-find)
+         ("C-c c l" . consult-line)
+         ("C-c c L" . consult-line-multi)
+         ("C-c c r" . consult-ripgrep)))
 #+end_src
 
 - Install [[https://github.com/oantolin/embark][embark and embark-consult]] to act based on what's near point
@@ -454,9 +520,8 @@
 #+begin_src elisp
 (use-package embark
   :bind
-  (("C-." . embark-act)
-   ("M-." . embark-dwim)
-   ("C-h B" . embark-bindings)) ; alternative for `describe-bindings'
+  (("C-c e a" . embark-act)
+   ("C-c e d" . embark-dwim))
   :custom
   (embark-indicators '(embark-minimal-indicator
                        embark-highlight-indicator
@@ -471,6 +536,21 @@
                  (window-parameters (mode-line-format . none)))))
 
 (use-package embark-consult :hook (embark-collect-mode . consult-preview-at-point-mode))
+#+end_src
+
+* Shell/Terminal
+
+- Enhance eshell with p10k theme
+
+#+begin_src elisp
+(use-package eshell-prompt-extras
+  :after esh-opt
+  :commands epe-theme-lambda
+  :custom-face
+  (epe-git-face ((t (:foreground "dark orange"))))
+  :custom
+  (eshell-highlight-prompt nil)
+  (eshell-prompt-function 'epe-theme-lambda))
 #+end_src
 
 * Tools
