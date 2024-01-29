@@ -186,11 +186,15 @@
   (meow-motion-overwrite-define-key
    '("j" . meow-next)
    '("k" . meow-prev)
+   '("[" . meow-beginning-of-thing)
+   '("]" . meow-end-of-thing)
    '("<escape>" . ignore))
   (meow-leader-define-key
    ;; SPC j/k will run the original command in MOTION state.
    '("j" . "H-j")
    '("k" . "H-k")
+   '("[" . "H-[")
+   '("]" . "H-]")
    ;; Use SPC (0-9) for digit arguments.
    '("1" . meow-digit-argument)
    '("2" . meow-digit-argument)
@@ -509,10 +513,10 @@
 (use-package consult
   :bind (([remap switch-to-buffer] . consult-buffer)
          ;; M-s bindings (search map)
-         ("C-c c f" . consult-find)
-         ("C-c c l" . consult-line)
-         ("C-c c L" . consult-line-multi)
-         ("C-c c r" . consult-ripgrep)))
+         ("C-c s f" . consult-find)
+         ("C-c s l" . consult-line)
+         ("C-c s L" . consult-line-multi)
+         ("C-c s r" . consult-ripgrep)))
 #+end_src
 
 - Install [[https://github.com/oantolin/embark][embark and embark-consult]] to act based on what's near point
@@ -616,4 +620,10 @@
   :custom ((create-lockfiles nil)
            (make-backup-files nil)
            (auto-save-default t)))
+#+end_src
+
+- Install [[https://github.com/magit/magit][magit]] (builtin =vc= is good, but does not have all features)
+
+#+begin_src elisp
+(use-package magit)
 #+end_src
